@@ -20,7 +20,7 @@ A visual annual planning tool that displays department events on an interactive 
 
 ### GitHub Pages (no install)
 
-Visit the live version — data saves to your browser's localStorage.
+Visit the live version at **https://smidigbommen.github.io/annuality/** — data saves to your browser's localStorage.
 
 ### Docker
 
