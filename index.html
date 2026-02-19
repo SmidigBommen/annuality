@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Annual Plan — Wheel View</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3345;
+    --text: #e8eaf0;
+    --text-dim: #8b90a0;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108,92,231,0.25);
+    --danger: #ff6b6b;
+  }
+
+  html,body {
+    height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text); overflow: hidden;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    grid-template-rows: 64px 1fr;
+    height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    grid-column: 1 / -1; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 32px;
+    background: var(--surface); border-bottom: 1px solid var(--border); z-index: 10;
+  }
+  header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  header h1 span { color: var(--accent); }
+  .year-nav { display: flex; align-items: center; gap: 8px; }
+  .year-nav button {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .year-nav button:hover { background: var(--border); }
+  .year-nav .year-label { font-size: 15px; font-weight: 600; min-width: 50px; text-align: center; }
+
+  /* ── WHEEL ── */
+  .wheel-area { display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  #wheelCanvas { cursor: pointer; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .sidebar-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); }
+  .sidebar-header h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+  .add-form { display: flex; flex-direction: column; gap: 10px; }
+  .form-row { display: flex; gap: 8px; }
+  .form-row > * { flex: 1; }
+  .add-form input, .add-form select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: 8px; font-size: 13px; font-family: inherit;
+    outline: none; transition: border-color 0.15s;
+  }
+  .add-form input:focus, .add-form select:focus { border-color: var(--accent); }
+  .add-form select { cursor: pointer; }
+  .add-form select option { background: var(--surface2); }
+  .btn-add {
+    background: var(--accent); color: #fff; border: none; padding: 9px 16px;
+    border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; font-family: inherit;
+  }
+  .btn-add:hover { filter: brightness(1.15); }
+  .btn-add:active { transform: scale(0.97); }
+
+  .dept-section { padding: 16px 24px; border-bottom: 1px solid var(--border); }
+  .dept-section h3 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .dept-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dept-chip {
+    display: flex; align-items: center; gap: 6px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px 5px 8px;
+    font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .dept-chip:hover { border-color: var(--text-dim); }
+  .dept-chip.active { border-color: var(--accent); background: var(--accent-glow); }
+  .dept-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .add-dept-btn {
+    background: transparent; border: 1px dashed var(--border); border-radius: 20px;
+    padding: 5px 12px; font-size: 12px; color: var(--text-dim); cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .add-dept-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .event-list-section { flex: 1; overflow-y: auto; padding: 16px 24px; }
+  .event-list-section h3 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .event-list { display: flex; flex-direction: column; gap: 6px; }
+  .event-item {
+    display: flex; align-items: center; gap: 10px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    transition: all 0.15s; cursor: default;
+  }
+  .event-item:hover { border-color: var(--text-dim); }
+  .event-item:hover .event-delete { opacity: 1; }
+  .event-color { width: 6px; height: 28px; border-radius: 3px; flex-shrink: 0; }
+  .event-info { flex: 1; min-width: 0; }
+  .event-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .event-delete {
+    opacity: 0; background: none; border: none; color: var(--danger); cursor: pointer;
+    padding: 4px; border-radius: 6px; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .event-delete:hover { background: rgba(255,107,107,0.15); }
+  .event-delete svg { width: 16px; height: 16px; }
+  .empty-state { text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+
+  .tooltip {
+    position: fixed; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; font-size: 12px; pointer-events: none;
+    z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.5); opacity: 0;
+    transition: opacity 0.12s; max-width: 260px;
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .tooltip-detail { color: var(--text-dim); line-height: 1.4; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; z-index: 200;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.active { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px; width: 360px; transform: scale(0.95); transition: transform 0.2s;
+  }
+  .modal-overlay.active .modal { transform: scale(1); }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-dim); margin-bottom: 6px; }
+  .modal-field input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 12px; border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;
+  }
+  .modal-field input:focus { border-color: var(--accent); }
+  .color-picker-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-swatch {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+  .modal-actions button {
+    padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-cancel { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+  .btn-cancel:hover { background: var(--border); }
+  .btn-confirm { background: var(--accent); border: none; color: #fff; }
+  .btn-confirm:hover { filter: brightness(1.15); }
+
+  .event-list-section::-webkit-scrollbar { width: 6px; }
+  .event-list-section::-webkit-scrollbar-track { background: transparent; }
+  .event-list-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1><span>&#9673;</span> Annual Plan</h1>
+    <div class="year-nav">
+      <button onclick="changeYear(-1)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="year-label" id="yearLabel">2026</span>
+      <button onclick="changeYear(1)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="wheel-area"><canvas id="wheelCanvas"></canvas></div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>Add Event</h2>
+      <div class="add-form">
+        <input type="text" id="eventName" placeholder="Event name" maxlength="60">
+        <div class="form-row">
+          <input type="date" id="eventDate">
+          <select id="eventDept"></select>
+        </div>
+        <button class="btn-add" onclick="addEvent()">Add to Plan</button>
+      </div>
+    </div>
+    <div class="dept-section">
+      <h3>Departments</h3>
+      <div class="dept-list" id="deptList"></div>
+    </div>
+    <div class="event-list-section">
+      <h3>Events <span id="eventCount"></span></h3>
+      <div class="event-list" id="eventList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tooltipTitle"></div>
+  <div class="tooltip-detail" id="tooltipDetail"></div>
+</div>
+
+<div class="modal-overlay" id="deptModal">
+  <div class="modal">
+    <h3>Add Department</h3>
+    <div class="modal-field">
+      <label>Name</label>
+      <input type="text" id="deptNameInput" placeholder="e.g. Engineering" maxlength="30">
+    </div>
+    <div class="modal-field">
+      <label>Color</label>
+      <div class="color-picker-row" id="colorPicker"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDeptModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmAddDept()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════ STATE ═══════════════════
+const STORE_KEY = 'annual-plan-v4';
+const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MF = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const PALETTE = [
+  '#6c5ce7','#00cec9','#fd79a8','#fdcb6e','#55efc4',
+  '#74b9ff','#e17055','#a29bfe','#81ecec','#fab1a0',
+  '#ff7675','#636e72','#00b894','#e84393','#0984e3'
+];
+
+let state = defaultState(); // replaced on init by loadState()
+let currentYear = new Date().getFullYear();
+let hoveredEvent = null;
+let selectedDeptFilter = null;
+let selectedColor = PALETTE[0];
+const dpr = window.devicePixelRatio || 1;
+
+function defaultState() {
+  return {
+    departments: [
+      { id: 'd1', name: 'Engineering', color: '#6c5ce7' },
+      { id: 'd2', name: 'Marketing',   color: '#00cec9' },
+      { id: 'd3', name: 'Sales',       color: '#fd79a8' },
+      { id: 'd4', name: 'HR',          color: '#fdcb6e' },
+      { id: 'd5', name: 'Finance',     color: '#55efc4' },
+    ],
+    events: [
+      { id: 'e1',  name: 'Q1 Planning',      date: '2026-01-15', deptId: 'd1' },
+      { id: 'e2',  name: 'Product Launch',    date: '2026-03-20', deptId: 'd2' },
+      { id: 'e3',  name: 'Annual Kickoff',    date: '2026-01-05', deptId: 'd4' },
+      { id: 'e4',  name: 'Budget Review',     date: '2026-04-10', deptId: 'd5' },
+      { id: 'e5',  name: 'Summer Campaign',   date: '2026-06-01', deptId: 'd2' },
+      { id: 'e6',  name: 'Mid-Year Review',   date: '2026-07-15', deptId: 'd4' },
+      { id: 'e7',  name: 'Tech Conference',   date: '2026-09-22', deptId: 'd1' },
+      { id: 'e8',  name: 'Q4 Sales Push',     date: '2026-10-01', deptId: 'd3' },
+      { id: 'e9',  name: 'Holiday Party',     date: '2026-12-18', deptId: 'd4' },
+      { id: 'e10', name: 'Year-End Close',    date: '2026-12-30', deptId: 'd5' },
+    ]
+  };
+}
+
+// ── Persistence: API first, localStorage fallback ──
+async function loadState() {
+  // Try server
+  try {
+    const res = await fetch('/api/plan');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.departments) return data;
+    }
+  } catch(e) {}
+  // Fallback to localStorage
+  try { const r = localStorage.getItem(STORE_KEY); if (r) return JSON.parse(r); } catch(e) {}
+  return defaultState();
+}
+
+let _saveTimer = null;
+function saveState() {
+  // Always save to localStorage immediately
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  // Debounce server save (300ms)
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    }).catch(() => {}); // silent fail — localStorage is the fallback
+  }, 300);
+}
+
+// ═══════════════════ CANVAS ═══════════════════
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, cx, cy, monthInR, monthOutR, evtInR, evtOutR, wedgeInR, wedgeDepth;
+
+function resize() {
+  const area = canvas.parentElement;
+  W = area.clientWidth; H = area.clientHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = W / 2; cy = H / 2;
+
+  const minDim = Math.min(W, H);
+  // Inner month ring
+  monthOutR = minDim * 0.2;
+  monthInR  = monthOutR * 0.55;
+  // Outer event ring — sits outside the month ring with a gap
+  evtInR  = monthOutR + 8;
+  evtOutR = evtInR + Math.max(18, minDim * 0.04);
+  // Wedge detail panels extend outward from event ring
+  wedgeInR  = evtOutR + 4;
+  wedgeDepth = Math.max(70, minDim * 0.16);
+
+  draw();
+}
+window.addEventListener('resize', resize);
+
+// ═══════════════════ ANGLES ═══════════════════
+function dateToAngle(dateStr) {
+  const d = new Date(dateStr), y = d.getFullYear();
+  const frac = (d - new Date(y,0,1)) / (new Date(y+1,0,1) - new Date(y,0,1));
+  return frac * Math.PI * 2 - Math.PI / 2;
+}
+function monthToAngle(m) { return (m / 12) * Math.PI * 2 - Math.PI / 2; }
+
+// ═══════════════════ DRAW ═══════════════════
+const MONTH_BG = [
+  'rgba(108,92,231,0.07)',  'rgba(108,92,231,0.035)',
+  'rgba(0,206,201,0.07)',   'rgba(0,206,201,0.035)',
+  'rgba(253,121,168,0.07)', 'rgba(253,121,168,0.035)',
+  'rgba(253,203,110,0.07)', 'rgba(253,203,110,0.035)',
+  'rgba(85,239,196,0.07)',  'rgba(85,239,196,0.035)',
+  'rgba(116,185,255,0.07)', 'rgba(116,185,255,0.035)',
+];
+
+function rgba(hex, a) {
+  return `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${a})`;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background glow
+  const bg = ctx.createRadialGradient(cx, cy, monthInR, cx, cy, evtOutR * 1.5);
+  bg.addColorStop(0, 'rgba(108,92,231,0.02)'); bg.addColorStop(1, 'transparent');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // ────── INNER MONTH RING ──────
+  for (let i = 0; i < 12; i++) {
+    const a0 = monthToAngle(i), a1 = monthToAngle(i + 1);
+    // Segment
+    ctx.beginPath();
+    ctx.arc(cx, cy, monthOutR, a0, a1);
+    ctx.arc(cx, cy, monthInR, a1, a0, true);
+    ctx.closePath();
+    ctx.fillStyle = MONTH_BG[i];
+    ctx.fill();
+    // Divider
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a0) * monthInR, cy + Math.sin(a0) * monthInR);
+    ctx.lineTo(cx + Math.cos(a0) * monthOutR, cy + Math.sin(a0) * monthOutR);
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1; ctx.stroke();
+    // Label
+    const mid = (a0 + a1) / 2, lr = (monthInR + monthOutR) / 2;
+    ctx.save();
+    ctx.translate(cx + Math.cos(mid) * lr, cy + Math.sin(mid) * lr);
+    let rot = mid + Math.PI / 2;
+    if (mid > 0 && mid < Math.PI) rot += Math.PI;
+    ctx.rotate(rot);
+    ctx.font = '700 9px Inter, sans-serif';
+    ctx.fillStyle = 'rgba(232,234,240,0.4)';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(MN[i].toUpperCase(), 0, 0);
+    ctx.restore();
+  }
+  // Month ring outlines
+  ctx.beginPath(); ctx.arc(cx, cy, monthOutR, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, monthInR, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1; ctx.stroke();
+
+  // ────── OUTER EVENT RING (background) ──────
+  ctx.beginPath();
+  ctx.arc(cx, cy, evtOutR, 0, Math.PI*2);
+  ctx.arc(cx, cy, evtInR, Math.PI*2, 0, true);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,0.015)';
+  ctx.fill();
+  // Month dividers on event ring
+  for (let i = 0; i < 12; i++) {
+    const a = monthToAngle(i);
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * evtInR, cy + Math.sin(a) * evtInR);
+    ctx.lineTo(cx + Math.cos(a) * evtOutR, cy + Math.sin(a) * evtOutR);
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5; ctx.stroke();
+  }
+  // Ring outlines
+  ctx.beginPath(); ctx.arc(cx, cy, evtOutR, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, evtInR, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5; ctx.stroke();
+
+  // ────── EVENTS: markers + wedge panels ──────
+  const yearEvents = getFilteredEvents();
+  const hitAreas = [];
+
+  // Build event objects with angles
+  const sorted = yearEvents.map(e => ({
+    ...e,
+    angle: dateToAngle(e.date),
+    dept: state.departments.find(d => d.id === e.deptId)
+  })).sort((a, b) => a.angle - b.angle);
+
+  // ── Resolve wedge overlaps: push apart close events ──
+  const wedgeSpan = 0.1; // half-angular-width of each wedge (~5.7°)
+  const wedgeGap  = 0.018;
+  const minSep = wedgeSpan * 2 + wedgeGap;
+  // Copy angles and resolve
+  sorted.forEach(ev => { ev.wAngle = ev.angle; });
+  for (let iter = 0; iter < 30; iter++) {
+    let moved = false;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      let diff = sorted[i+1].wAngle - sorted[i].wAngle;
+      // Wrap around
+      if (diff < 0) diff += Math.PI * 2;
+      if (diff < minSep && diff >= 0) {
+        const push = (minSep - diff) / 2 + 0.002;
+        sorted[i].wAngle   -= push;
+        sorted[i+1].wAngle += push;
+        moved = true;
+      }
+    }
+    // Also check wrap-around between last and first
+    if (sorted.length > 1) {
+      let diff = sorted[0].wAngle + Math.PI*2 - sorted[sorted.length-1].wAngle;
+      if (diff < minSep) {
+        const push = (minSep - diff) / 2 + 0.002;
+        sorted[sorted.length-1].wAngle -= push;
+        sorted[0].wAngle += push;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+
+  // ── Draw: small marker on event ring + wedge detail panel ──
+  sorted.forEach(ev => {
+    const color = ev.dept ? ev.dept.color : '#636e72';
+    const isHov = hoveredEvent && hoveredEvent.id === ev.id;
+    const origAngle = ev.angle;  // true date position
+    const wAngle = ev.wAngle;    // resolved wedge position
+
+    // ── Small colored marker on event ring (at true date angle) ──
+    const markerSpan = 0.035;
+    ctx.beginPath();
+    ctx.arc(cx, cy, evtOutR - 1, origAngle - markerSpan, origAngle + markerSpan);
+    ctx.arc(cx, cy, evtInR + 1,  origAngle + markerSpan, origAngle - markerSpan, true);
+    ctx.closePath();
+    ctx.fillStyle = rgba(color, isHov ? 1 : 0.75);
+    ctx.fill();
+
+    // ── Connector: thin line from marker to wedge (if angles differ) ──
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(origAngle) * evtOutR, cy + Math.sin(origAngle) * evtOutR);
+    ctx.lineTo(cx + Math.cos(wAngle) * wedgeInR, cy + Math.sin(wAngle) * wedgeInR);
+    ctx.strokeStyle = rgba(color, isHov ? 0.5 : 0.15);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // ── Wedge detail panel ──
+    const wInner = wedgeInR;
+    const wOuter = wedgeInR + wedgeDepth;
+    const wa0 = wAngle - wedgeSpan;
+    const wa1 = wAngle + wedgeSpan;
+
+    // Wedge shape
+    ctx.beginPath();
+    ctx.arc(cx, cy, wOuter, wa0, wa1);
+    ctx.arc(cx, cy, wInner, wa1, wa0, true);
+    ctx.closePath();
+
+    // Fill: dark with subtle dept color tint
+    const grad = ctx.createRadialGradient(cx, cy, wInner, cx, cy, wOuter);
+    if (isHov) {
+      grad.addColorStop(0, rgba(color, 0.18));
+      grad.addColorStop(1, rgba(color, 0.08));
+    } else {
+      grad.addColorStop(0, 'rgba(22,25,35,0.92)');
+      grad.addColorStop(1, 'rgba(18,20,30,0.88)');
+    }
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = isHov ? rgba(color, 0.5) : 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = isHov ? 1.5 : 0.8;
+    ctx.stroke();
+
+    // Color accent bar on inner edge of wedge
+    ctx.beginPath();
+    ctx.arc(cx, cy, wInner + 3, wa0, wa1);
+    ctx.arc(cx, cy, wInner,     wa1, wa0, true);
+    ctx.closePath();
+    ctx.fillStyle = rgba(color, isHov ? 0.9 : 0.6);
+    ctx.fill();
+
+    // ── Text inside wedge (radial, reads outward) ──
+    const textR = wInner + 14;
+    const tx = cx + Math.cos(wAngle) * textR;
+    const ty = cy + Math.sin(wAngle) * textR;
+    ctx.save();
+    ctx.translate(tx, ty);
+    let textRot = wAngle;
+    let align = 'left';
+    if (wAngle > Math.PI / 2 || wAngle < -Math.PI / 2) {
+      textRot += Math.PI;
+      align = 'right';
+    }
+    ctx.rotate(textRot);
+
+    // Event name
+    ctx.font = isHov ? '600 11px Inter, sans-serif' : '500 11px Inter, sans-serif';
+    ctx.fillStyle = isHov ? '#fff' : 'rgba(232,234,240,0.8)';
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    // Measure max available width
+    const maxTextW = wedgeDepth - 22;
+    let name = ev.name;
+    if (ctx.measureText(name).width > maxTextW) {
+      while (name.length > 1 && ctx.measureText(name + '...').width > maxTextW) name = name.slice(0, -1);
+      name += '...';
+    }
+    ctx.fillText(name, 0, -6);
+
+    // Date + department
+    const d = new Date(ev.date);
+    const meta = MN[d.getMonth()] + ' ' + d.getDate() + '  ·  ' + (ev.dept ? ev.dept.name : '');
+    ctx.font = '400 9px Inter, sans-serif';
+    ctx.fillStyle = isHov ? rgba(color, 0.7) : 'rgba(139,144,160,0.5)';
+    let metaStr = meta;
+    if (ctx.measureText(metaStr).width > maxTextW) {
+      while (metaStr.length > 1 && ctx.measureText(metaStr + '...').width > maxTextW) metaStr = metaStr.slice(0,-1);
+      metaStr += '...';
+    }
+    ctx.fillText(metaStr, 0, 7);
+
+    ctx.restore();
+
+    // Hit area (the wedge)
+    hitAreas.push({
+      ev, dept: ev.dept,
+      rInner: wInner, rOuter: wOuter,
+      a0: wa0, a1: wa1, angle: wAngle
+    });
+  });
+
+  window._hitAreas = hitAreas;
+
+  // ────── TODAY MARKER ──────
+  const today = new Date();
+  if (today.getFullYear() === currentYear) {
+    const ta = dateToAngle(today.toISOString().slice(0, 10));
+    const todayOutR = wedgeInR + wedgeDepth + 10;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(ta) * (monthInR - 4), cy + Math.sin(ta) * (monthInR - 4));
+    ctx.lineTo(cx + Math.cos(ta) * todayOutR, cy + Math.sin(ta) * todayOutR);
+    ctx.strokeStyle = 'rgba(255,107,107,0.35)';
+    ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+
+    // "TODAY" label inside month ring
+    const br = monthInR - 12;
+    ctx.save();
+    ctx.translate(cx + Math.cos(ta) * br, cy + Math.sin(ta) * br);
+    let bRot = ta + Math.PI / 2;
+    if (ta > 0 && ta < Math.PI) bRot += Math.PI;
+    ctx.rotate(bRot);
+    ctx.font = '700 7px Inter, sans-serif'; ctx.fillStyle = '#ff6b6b';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('TODAY', 0, 0);
+    ctx.restore();
+  }
+
+  // ────── CENTER TEXT ──────
+  ctx.fillStyle = 'rgba(232,234,240,0.9)';
+  ctx.font = '700 32px Inter, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(currentYear, cx, cy - 8);
+
+  ctx.fillStyle = 'rgba(139,144,160,0.55)';
+  ctx.font = '400 10px Inter, sans-serif';
+  ctx.fillText(yearEvents.length + ' event' + (yearEvents.length !== 1 ? 's' : ''), cx, cy + 10);
+
+  if (today.getFullYear() === currentYear) {
+    ctx.fillStyle = 'rgba(255,107,107,0.45)';
+    ctx.font = '500 9px Inter, sans-serif';
+    ctx.fillText(MF[today.getMonth()] + ' ' + today.getDate(), cx, cy + 24);
+  }
+}
+
+function angleDiff(a, b) {
+  let d = a - b;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
+// ═══════════════════ INTERACTION ═══════════════════
+const tooltip = document.getElementById('tooltip');
+const tooltipTitle = document.getElementById('tooltipTitle');
+const tooltipDetail = document.getElementById('tooltipDetail');
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const dx = mx - cx, dy = my - cy;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const angle = Math.atan2(dy, dx);
+
+  let found = null;
+  if (window._hitAreas) {
+    for (const h of window._hitAreas) {
+      if (dist < h.rInner || dist > h.rOuter) continue;
+      // Check if angle is within the wedge arc bounds
+      let a = angle, a0 = h.a0, a1 = h.a1;
+      // Normalize to [0, 2PI]
+      while (a  < 0) a  += Math.PI * 2;
+      while (a0 < 0) a0 += Math.PI * 2;
+      while (a1 < 0) a1 += Math.PI * 2;
+      let inArc = false;
+      if (a0 <= a1) { inArc = a >= a0 && a <= a1; }
+      else { inArc = a >= a0 || a <= a1; }
+      if (inArc) { found = h; break; }
+    }
+  }
+
+  if (found) {
+    canvas.style.cursor = 'pointer';
+    if (!hoveredEvent || hoveredEvent.id !== found.ev.id) {
+      hoveredEvent = found.ev;
+      draw();
+    }
+    const d = new Date(found.ev.date);
+    tooltipTitle.textContent = found.ev.name;
+    tooltipDetail.textContent = MF[d.getMonth()] + ' ' + d.getDate() + ' — ' + (found.dept ? found.dept.name : 'Unknown');
+    tooltip.style.left = (e.clientX + 16) + 'px';
+    tooltip.style.top  = (e.clientY - 8) + 'px';
+    tooltip.classList.add('visible');
+  } else {
+    canvas.style.cursor = 'default';
+    if (hoveredEvent) { hoveredEvent = null; draw(); }
+    tooltip.classList.remove('visible');
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (hoveredEvent) { hoveredEvent = null; draw(); }
+  tooltip.classList.remove('visible');
+});
+
+// ═══════════════════ NAV / CRUD ═══════════════════
+function changeYear(d) {
+  currentYear += d;
+  document.getElementById('yearLabel').textContent = currentYear;
+  render();
+}
+
+function getFilteredEvents() {
+  return state.events.filter(e => {
+    const y = new Date(e.date).getFullYear();
+    return y === currentYear && (!selectedDeptFilter || e.deptId === selectedDeptFilter);
+  });
+}
+
+function addEvent() {
+  const name = document.getElementById('eventName').value.trim();
+  const date = document.getElementById('eventDate').value;
+  const deptId = document.getElementById('eventDept').value;
+  if (!name || !date) return;
+  state.events.push({ id: 'e' + Date.now(), name, date, deptId });
+  saveState();
+  document.getElementById('eventName').value = '';
+  render();
+}
+
+function deleteEvent(id) {
+  state.events = state.events.filter(e => e.id !== id);
+  saveState(); render();
+}
+
+// ═══════════════════ DEPARTMENTS ═══════════════════
+function renderDepts() {
+  const list = document.getElementById('deptList');
+  const sel  = document.getElementById('eventDept');
+  list.innerHTML = state.departments.map(d => `
+    <div class="dept-chip ${selectedDeptFilter === d.id ? 'active' : ''}" onclick="toggleDeptFilter('${d.id}')">
+      <span class="dept-dot" style="background:${d.color}"></span>${d.name}
+    </div>
+  `).join('') + '<button class="add-dept-btn" onclick="openDeptModal()">+ Add</button>';
+  sel.innerHTML = state.departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+}
+
+function toggleDeptFilter(id) { selectedDeptFilter = selectedDeptFilter === id ? null : id; render(); }
+
+function openDeptModal() {
+  document.getElementById('deptModal').classList.add('active');
+  document.getElementById('deptNameInput').value = '';
+  renderColorPicker();
+  setTimeout(() => document.getElementById('deptNameInput').focus(), 100);
+}
+function closeDeptModal() { document.getElementById('deptModal').classList.remove('active'); }
+
+function renderColorPicker() {
+  const used = new Set(state.departments.map(d => d.color));
+  selectedColor = PALETTE.find(c => !used.has(c)) || PALETTE[0];
+  document.getElementById('colorPicker').innerHTML = PALETTE.map(c =>
+    `<div class="color-swatch ${c === selectedColor ? 'selected' : ''}" style="background:${c}" onclick="pickColor('${c}')"></div>`
+  ).join('');
+}
+function pickColor(c) { selectedColor = c; renderColorPicker(); }
+
+function confirmAddDept() {
+  const name = document.getElementById('deptNameInput').value.trim();
+  if (!name) return;
+  state.departments.push({ id: 'd' + Date.now(), name, color: selectedColor });
+  saveState(); closeDeptModal(); render();
+}
+
+// ═══════════════════ EVENT LIST ═══════════════════
+function renderEventList() {
+  const events = getFilteredEvents().sort((a, b) => a.date.localeCompare(b.date));
+  const container = document.getElementById('eventList');
+  document.getElementById('eventCount').textContent = `(${events.length})`;
+  if (!events.length) {
+    container.innerHTML = '<div class="empty-state">No events for ' + currentYear + '.<br>Add your first event above!</div>';
+    return;
+  }
+  container.innerHTML = events.map(e => {
+    const dept = state.departments.find(d => d.id === e.deptId);
+    const d = new Date(e.date);
+    return `
+      <div class="event-item">
+        <div class="event-color" style="background:${dept ? dept.color : '#636e72'}"></div>
+        <div class="event-info">
+          <div class="event-name">${escHtml(e.name)}</div>
+          <div class="event-meta">${MN[d.getMonth()]} ${d.getDate()} &middot; ${dept ? dept.name : 'Unknown'}</div>
+        </div>
+        <button class="event-delete" onclick="deleteEvent('${e.id}')" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+          </svg>
+        </button>
+      </div>`;
+  }).join('');
+}
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ═══════════════════ KEYBOARD ═══════════════════
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDeptModal();
+  if (e.key === 'Enter' && document.getElementById('deptModal').classList.contains('active')) confirmAddDept();
+  if (e.key === 'Enter' && document.activeElement.id === 'eventName') addEvent();
+});
+
+// ═══════════════════ INIT ═══════════════════
+function render() { renderDepts(); renderEventList(); draw(); }
+document.getElementById('eventDate').value = new Date().toISOString().slice(0, 10);
+
+(async () => {
+  state = await loadState();
+  resize();
+  render();
+})();
+</script>
+</body>
+</html>

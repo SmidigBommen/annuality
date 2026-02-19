@@ -1,0 +1,11 @@
+services:
+  yearly-planning:
+    build: .
+    ports:
+      - "8080:3000"
+    volumes:
+      - plan-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  plan-data:
